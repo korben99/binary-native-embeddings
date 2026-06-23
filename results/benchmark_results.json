@@ -6,9 +6,9 @@
     "scifact_recall10": 0.3131,
     "memory_1k_vecs": "1.46 MB",
     "latency_cpu": {
-      "mean_ms": 4.59,
-      "p50_ms": 4.59,
-      "p95_ms": 4.74
+      "mean_ms": 4.6,
+      "p50_ms": 4.58,
+      "p95_ms": 4.76
     }
   },
   "binary_posthoc_384": {
@@ -18,9 +18,21 @@
     "scifact_recall10": 0.2358,
     "memory_1k_vecs": "47 KB",
     "latency_cpu": {
-      "mean_ms": 4.65,
-      "p50_ms": 4.61,
-      "p95_ms": 5.19
+      "mean_ms": 4.36,
+      "p50_ms": 4.35,
+      "p95_ms": 4.49
+    }
+  },
+  "binary_native_2048": {
+    "dims": 2048,
+    "dtype": "binary",
+    "stsb_spearman": 0.7293,
+    "scifact_recall10": 0.2761,
+    "memory_1k_vecs": "250 KB",
+    "latency_cpu": {
+      "mean_ms": 4.57,
+      "p50_ms": 4.52,
+      "p95_ms": 4.95
     }
   },
   "binary_native_4096": {
@@ -30,9 +42,9 @@
     "scifact_recall10": 0.2958,
     "memory_1k_vecs": "500 KB",
     "latency_cpu": {
-      "mean_ms": 4.8,
-      "p50_ms": 4.74,
-      "p95_ms": 5.18
+      "mean_ms": 4.61,
+      "p50_ms": 4.59,
+      "p95_ms": 4.8
     }
   }
 }
