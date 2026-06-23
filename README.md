@@ -64,8 +64,8 @@ vecs = model.encode(["binary embeddings are fast on CPU"], tokenizer)
 ### 1 — Environment
 
 ```bash
-conda create -n binary-emb python=3.11 -y
-conda activate binary-emb
+python3.13 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 

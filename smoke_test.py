@@ -7,7 +7,10 @@ Usage: python smoke_test.py
 import sys
 import torch
 from pathlib import Path
-from transformers import AutoTokenizer
+from dotenv import load_dotenv
+from transformers import BertTokenizer
+
+load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -19,7 +22,7 @@ from models.ste import binarize
 def test_ste():
     x = torch.tensor([-1.0, 0.5, -0.3, 0.9])
     out = binarize(x)
-    assert out.tolist() == [0.0, 1.0, 0.0, 1.0], f"STE forward failed: {out}"
+    assert out.tolist() == [-1.0, 1.0, -1.0, 1.0], f"STE forward failed: {out}"
 
     # gradient must pass through unchanged
     x = torch.randn(4, requires_grad=True)
@@ -29,7 +32,7 @@ def test_ste():
 
 
 def test_float_embedder():
-    tokenizer = AutoTokenizer.from_pretrained("prajjwal1/bert-mini")
+    tokenizer = BertTokenizer.from_pretrained("prajjwal1/bert-mini")
     model = FloatEmbedder(output_dim=384)
     texts = ["hello world", "binary embeddings are fast"]
     embs = model.encode(texts, tokenizer)
@@ -38,13 +41,13 @@ def test_float_embedder():
 
 
 def test_binary_embedder():
-    tokenizer = AutoTokenizer.from_pretrained("prajjwal1/bert-mini")
+    tokenizer = BertTokenizer.from_pretrained("prajjwal1/bert-mini")
     model = BinaryEmbedder(binary_dim=4096)
     texts = ["hello world", "binary embeddings are fast"]
     embs = model.encode(texts, tokenizer)
     assert embs.shape == (2, 4096), f"Expected (2,4096) got {embs.shape}"
-    assert set(embs.unique().tolist()).issubset({0.0, 1.0}), "Output should be binary {0,1}"
-    print(f"  [OK] BinaryEmbedder output {embs.shape}, values in {{0,1}}")
+    assert set(embs.unique().tolist()).issubset({-1.0, 1.0}), "Output should be binary {-1,+1}"
+    print(f"  [OK] BinaryEmbedder output {embs.shape}, values in {{-1,+1}}")
 
 
 def test_losses():
@@ -75,7 +78,7 @@ def test_mini_training():
         def __len__(self): return 16
         def __getitem__(self, i): return self.a[i], self.p[i]
 
-    tokenizer = AutoTokenizer.from_pretrained("prajjwal1/bert-mini")
+    tokenizer = BertTokenizer.from_pretrained("prajjwal1/bert-mini")
     loader = DataLoader(TinyDataset(), batch_size=8)
 
     for mode in ("float", "binary"):
@@ -94,11 +97,14 @@ def test_mini_training():
             enc_p = tokenizer(list(positives), padding=True, truncation=True,
                               max_length=64, return_tensors="pt")
             if mode == "float":
-                loss = mnrl_loss(model(**enc_a), model(**enc_p))
+                loss = mnrl_loss(
+                    model(enc_a["input_ids"], enc_a["attention_mask"]),
+                    model(enc_p["input_ids"], enc_p["attention_mask"]),
+                )
             else:
                 loss = binary_contrastive_loss(
-                    model(**enc_a, binarize_output=False),
-                    model(**enc_p, binarize_output=False),
+                    model(enc_a["input_ids"], enc_a["attention_mask"], binarize_output=False),
+                    model(enc_p["input_ids"], enc_p["attention_mask"], binarize_output=False),
                 )
             opt.zero_grad()
             loss.backward()

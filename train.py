@@ -9,10 +9,13 @@ Usage:
 import argparse
 import time
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import torch
 from torch.utils.data import DataLoader, Dataset
-from transformers import AutoTokenizer
+from transformers import BertTokenizer
 from datasets import load_from_disk, load_dataset
 
 from models.float_embedder import FloatEmbedder, mnrl_loss
@@ -59,7 +62,7 @@ def tokenize(texts, tokenizer, device):
 def train(mode, epochs=3, batch_size=64, lr=2e-5, max_samples=None, no_mps=False):
     device = get_device(prefer_mps=not no_mps)
 
-    tokenizer = AutoTokenizer.from_pretrained("prajjwal1/bert-mini")
+    tokenizer = BertTokenizer.from_pretrained("prajjwal1/bert-mini")
 
     if mode == "float":
         model = FloatEmbedder(output_dim=384).to(device)
@@ -86,7 +89,14 @@ def train(mode, epochs=3, batch_size=64, lr=2e-5, max_samples=None, no_mps=False
         num_workers=0,
     )
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
+    if mode == "binary":
+        # Projection is randomly init — needs much higher LR than pretrained encoder
+        optimizer = torch.optim.AdamW([
+            {"params": model.encoder.parameters(), "lr": lr},
+            {"params": model.projection.parameters(), "lr": lr * 50},
+        ], weight_decay=0.01)
+    else:
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=len(loader) * epochs
     )
@@ -105,12 +115,12 @@ def train(mode, epochs=3, batch_size=64, lr=2e-5, max_samples=None, no_mps=False
             p_enc = tokenize(positives, tokenizer, device)
 
             if mode == "float":
-                a = model(**a_enc)
-                p = model(**p_enc)
+                a = model(a_enc["input_ids"], a_enc["attention_mask"])
+                p = model(p_enc["input_ids"], p_enc["attention_mask"])
                 loss = mnrl_loss(a, p)
             else:
-                a_logits = model(**a_enc, binarize_output=False)
-                p_logits = model(**p_enc, binarize_output=False)
+                a_logits = model(a_enc["input_ids"], a_enc["attention_mask"], binarize_output=False)
+                p_logits = model(p_enc["input_ids"], p_enc["attention_mask"], binarize_output=False)
                 loss = binary_contrastive_loss(a_logits, p_logits)
 
             optimizer.zero_grad()

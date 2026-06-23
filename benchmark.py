@@ -7,11 +7,14 @@ Results saved to results/benchmark_results.json
 import json
 import time
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import numpy as np
 import torch
 from scipy.stats import spearmanr
-from transformers import AutoTokenizer
+from transformers import BertTokenizer
 
 BASE_DIR = Path(__file__).parent
 DATA_DIR = BASE_DIR / "data_cache"
@@ -28,10 +31,12 @@ def cosine_sim_matrix(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 
 def hamming_sim_matrix(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-    """Normalized bit-agreement between {0,1} vectors. Range [0,1]."""
+    """
+    Similarity for {-1,+1} binary vectors via normalized dot product.
+    Equivalent to 1 - 2*hamming_distance/D, range [-1, +1].
+    """
     D = a.shape[1]
-    agree = torch.mm(a, b.T) + torch.mm(1.0 - a, (1.0 - b).T)
-    return agree / D
+    return torch.mm(a, b.T) / D
 
 
 # ── STS-B ─────────────────────────────────────────────────────────────────────
@@ -151,7 +156,8 @@ class PostHocBinaryWrapper:
         self.base = base
 
     def encode(self, texts, tokenizer, device="cpu", batch_size=64):
-        return (self.base.encode(texts, tokenizer, device=device, batch_size=batch_size) > 0).float()
+        floats = self.base.encode(texts, tokenizer, device=device, batch_size=batch_size)
+        return torch.sign(floats).float()  # {-1, +1}
 
     def eval(self):
         self.base.eval()
@@ -163,7 +169,7 @@ def main():
     from models.float_embedder import FloatEmbedder
     from models.binary_embedder import BinaryEmbedder
 
-    tokenizer = AutoTokenizer.from_pretrained("prajjwal1/bert-mini")
+    tokenizer = BertTokenizer.from_pretrained("prajjwal1/bert-mini")
 
     # Load models
     print("\n=== Loading models ===")

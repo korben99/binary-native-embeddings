@@ -4,6 +4,10 @@ Run once before training: python data/prepare.py
 """
 import json
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from datasets import load_dataset
 
 DATA_DIR = Path(__file__).parent.parent / "data_cache"

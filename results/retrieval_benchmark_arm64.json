@@ -1,0 +1,30 @@
+{
+  "platform": "jarvis | arm | Python 3.13.12",
+  "10000": {
+    "n_vectors": 10000,
+    "float_mem_mb": 15.4,
+    "binary_mem_mb": 5.12,
+    "mem_ratio_x": 3.0,
+    "float_search_ms": 2.26,
+    "binary_search_ms": 77.01,
+    "speedup_x": 0.0
+  },
+  "100000": {
+    "n_vectors": 100000,
+    "float_mem_mb": 153.6,
+    "binary_mem_mb": 51.2,
+    "mem_ratio_x": 3.0,
+    "float_search_ms": 26.51,
+    "binary_search_ms": 778.78,
+    "speedup_x": 0.0
+  },
+  "1000000": {
+    "n_vectors": 1000000,
+    "float_mem_mb": 1536.0,
+    "binary_mem_mb": 512.0,
+    "mem_ratio_x": 3.0,
+    "float_search_ms": 243.83,
+    "binary_search_ms": 7787.33,
+    "speedup_x": 0.0
+  }
+}

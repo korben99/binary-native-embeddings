@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AutoModel
+from transformers import BertModel
 
 from .ste import binarize
 
@@ -9,7 +9,7 @@ from .ste import binarize
 class BinaryEmbedder(nn.Module):
     def __init__(self, model_name="prajjwal1/bert-mini", binary_dim=4096):
         super().__init__()
-        self.encoder = AutoModel.from_pretrained(model_name)
+        self.encoder = BertModel.from_pretrained(model_name)
         hidden = self.encoder.config.hidden_size  # 256 for bert-mini
         self.projection = nn.Sequential(
             nn.Linear(hidden, binary_dim),
@@ -38,18 +38,19 @@ class BinaryEmbedder(nn.Module):
                 batch, padding=True, truncation=True, max_length=128, return_tensors="pt"
             ).to(device)
             with torch.no_grad():
-                embs = self.forward(**enc, binarize_output=True)
+                embs = self.forward(enc["input_ids"], enc["attention_mask"], binarize_output=True)
             all_embs.append(embs.cpu())
         return torch.cat(all_embs, dim=0)
 
 
-def binary_contrastive_loss(anchors_logits, positives_logits, temperature=0.1):
+def binary_contrastive_loss(anchors_logits, positives_logits, temperature=0.05):
     """
-    Loss on pre-binarization logits via sigmoid + cosine, so gradients flow
-    through the STE into the projection head.
+    Loss on pre-binarization logits via tanh + cosine.
+    tanh maps to (-1,+1), aligned with the {-1,+1} STE output so the training
+    signal directly optimizes what the eval metric measures.
     """
-    a = torch.sigmoid(anchors_logits)
-    p = torch.sigmoid(positives_logits)
+    a = torch.tanh(anchors_logits)
+    p = torch.tanh(positives_logits)
     a_norm = F.normalize(a, dim=-1)
     p_norm = F.normalize(p, dim=-1)
     sim = torch.mm(a_norm, p_norm.T) / temperature

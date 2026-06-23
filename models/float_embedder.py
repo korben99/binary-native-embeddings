@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AutoModel
+from transformers import BertModel
 
 
 class FloatEmbedder(nn.Module):
     def __init__(self, model_name="prajjwal1/bert-mini", output_dim=384):
         super().__init__()
-        self.encoder = AutoModel.from_pretrained(model_name)
+        self.encoder = BertModel.from_pretrained(model_name)
         hidden = self.encoder.config.hidden_size  # 256 for bert-mini
         # project to target dim so memory footprint matches the plan
         self.projection = nn.Linear(hidden, output_dim) if hidden != output_dim else nn.Identity()
@@ -31,7 +31,7 @@ class FloatEmbedder(nn.Module):
                 batch, padding=True, truncation=True, max_length=128, return_tensors="pt"
             ).to(device)
             with torch.no_grad():
-                embs = self.forward(**enc)
+                embs = self.forward(enc["input_ids"], enc["attention_mask"])
             all_embs.append(embs.cpu())
         return torch.cat(all_embs, dim=0)
 
