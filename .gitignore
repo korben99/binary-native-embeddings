@@ -9,6 +9,7 @@ plan_action_binary_embeddings.md
 # données et checkpoints (lourds, pas dans git)
 data_cache/
 *.log
+publish_hf.py
 
 # secrets
 .env

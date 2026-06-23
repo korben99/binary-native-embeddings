@@ -165,13 +165,12 @@ class PostHocBinaryWrapper:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main():
+def main(binary_dims=(2048, 4096)):
     from models.float_embedder import FloatEmbedder
     from models.binary_embedder import BinaryEmbedder
 
     tokenizer = BertTokenizer.from_pretrained("prajjwal1/bert-mini")
 
-    # Load models
     print("\n=== Loading models ===")
     float_model = FloatEmbedder(output_dim=384)
     ckpt = CKPT_DIR / "float_embedder.pt"
@@ -182,22 +181,26 @@ def main():
         print(f"  WARNING: {ckpt} not found — using random weights")
     float_model.eval()
 
-    binary_model = BinaryEmbedder(binary_dim=4096)
-    ckpt = CKPT_DIR / "binary_embedder.pt"
-    if ckpt.exists():
-        binary_model.load_state_dict(torch.load(ckpt, map_location="cpu"))
-        print(f"  binary_embedder.pt loaded")
-    else:
-        print(f"  WARNING: {ckpt} not found — using random weights")
-    binary_model.eval()
-
     posthoc_model = PostHocBinaryWrapper(float_model)
 
     configs = [
-        ("float32_384",        float_model,    False, 384,  False),
-        ("binary_posthoc_384", posthoc_model,  True,  384,  True),
-        ("binary_native_4096", binary_model,   True,  4096, True),
+        ("float32_384",        float_model,   False, 384,  False),
+        ("binary_posthoc_384", posthoc_model, True,  384,  True),
     ]
+
+    for dim in binary_dims:
+        binary_model = BinaryEmbedder(binary_dim=dim)
+        ckpt = CKPT_DIR / f"binary_embedder_{dim}.pt"
+        # fallback to legacy name for 4096
+        if not ckpt.exists() and dim == 4096:
+            ckpt = CKPT_DIR / "binary_embedder.pt"
+        if ckpt.exists():
+            binary_model.load_state_dict(torch.load(ckpt, map_location="cpu"))
+            print(f"  binary_embedder_{dim}.pt loaded")
+        else:
+            print(f"  WARNING: {ckpt} not found — using random weights")
+        binary_model.eval()
+        configs.append((f"binary_native_{dim}", binary_model, True, dim, True))
 
     results = {}
 
@@ -246,4 +249,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--binary_dims", type=int, nargs="+", default=[2048, 4096],
+                        help="Binary dims to evaluate (e.g. --binary_dims 2048 4096)")
+    args = parser.parse_args()
+    main(binary_dims=args.binary_dims)

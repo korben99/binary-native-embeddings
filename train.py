@@ -59,7 +59,7 @@ def tokenize(texts, tokenizer, device):
     ).to(device)
 
 
-def train(mode, epochs=3, batch_size=64, lr=2e-5, max_samples=None, no_mps=False):
+def train(mode, epochs=3, batch_size=64, lr=2e-5, max_samples=None, no_mps=False, binary_dim=4096):
     device = get_device(prefer_mps=not no_mps)
 
     tokenizer = BertTokenizer.from_pretrained("prajjwal1/bert-mini")
@@ -68,8 +68,8 @@ def train(mode, epochs=3, batch_size=64, lr=2e-5, max_samples=None, no_mps=False
         model = FloatEmbedder(output_dim=384).to(device)
         ckpt_name = "float_embedder.pt"
     else:
-        model = BinaryEmbedder(binary_dim=4096).to(device)
-        ckpt_name = "binary_embedder.pt"
+        model = BinaryEmbedder(binary_dim=binary_dim).to(device)
+        ckpt_name = f"binary_embedder_{binary_dim}.pt"
 
     # Load NLI dataset
     cache = DATA_DIR / "nli_train"
@@ -159,5 +159,7 @@ if __name__ == "__main__":
                         help="Limit training samples (smoke test)")
     parser.add_argument("--no_mps", action="store_true",
                         help="Force CPU even on Apple Silicon")
+    parser.add_argument("--binary_dim", type=int, default=4096,
+                        help="Binary embedding dimension (e.g. 1024, 2048, 4096)")
     args = parser.parse_args()
-    train(args.mode, args.epochs, args.batch_size, args.lr, args.max_samples, args.no_mps)
+    train(args.mode, args.epochs, args.batch_size, args.lr, args.max_samples, args.no_mps, args.binary_dim)
