@@ -1,0 +1,61 @@
+{
+  "platform": "EU-H3JH294 | Intel64 Family 6 Model 170 Stepping 4, GenuineIntel | Python 3.12.10 | FAISS (AVX2+POPCNT)",
+  "backend": "FAISS (AVX2+POPCNT)",
+  "10000": {
+    "n_vectors": 10000,
+    "float_mem_mb": 15.4,
+    "float_search_ms": 47.9,
+    "binary": {
+      "2048": {
+        "binary_mem_mb": 2.6,
+        "mem_ratio_x": 6.0,
+        "binary_search_ms": 2.2,
+        "vs_float": "21.8x faster"
+      },
+      "4096": {
+        "binary_mem_mb": 5.1,
+        "mem_ratio_x": 3.0,
+        "binary_search_ms": 4.42,
+        "vs_float": "10.8x faster"
+      }
+    }
+  },
+  "100000": {
+    "n_vectors": 100000,
+    "float_mem_mb": 153.6,
+    "float_search_ms": 254.26,
+    "binary": {
+      "2048": {
+        "binary_mem_mb": 25.6,
+        "mem_ratio_x": 6.0,
+        "binary_search_ms": 24.69,
+        "vs_float": "10.3x faster"
+      },
+      "4096": {
+        "binary_mem_mb": 51.2,
+        "mem_ratio_x": 3.0,
+        "binary_search_ms": 52.91,
+        "vs_float": "4.8x faster"
+      }
+    }
+  },
+  "1000000": {
+    "n_vectors": 1000000,
+    "float_mem_mb": 1536.0,
+    "float_search_ms": 3600.94,
+    "binary": {
+      "2048": {
+        "binary_mem_mb": 256.0,
+        "mem_ratio_x": 6.0,
+        "binary_search_ms": 292.53,
+        "vs_float": "12.3x faster"
+      },
+      "4096": {
+        "binary_mem_mb": 512.0,
+        "mem_ratio_x": 3.0,
+        "binary_search_ms": 595.96,
+        "vs_float": "6.0x faster"
+      }
+    }
+  }
+}
