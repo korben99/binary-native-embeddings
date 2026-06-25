@@ -1,0 +1,72 @@
+{
+  "float32_384": {
+    "n_seeds": 1,
+    "stsb_mean": 0.7355,
+    "stsb_std": 0.0,
+    "dims": 384,
+    "dtype": "float32",
+    "memory": "1.46 MB",
+    "recall": {
+      "scifact": {
+        "mean": 0.3131,
+        "std": 0.0
+      }
+    }
+  },
+  "float32_q4_384": {
+    "n_seeds": 1,
+    "stsb_mean": 0.735,
+    "stsb_std": 0.0,
+    "dims": 384,
+    "dtype": "float32_q4",
+    "memory": "1.46 MB",
+    "recall": {
+      "scifact": {
+        "mean": 0.3097,
+        "std": 0.0
+      }
+    }
+  },
+  "binary_posthoc_384": {
+    "n_seeds": 1,
+    "stsb_mean": 0.7271,
+    "stsb_std": 0.0,
+    "dims": 384,
+    "dtype": "binary",
+    "memory": "47 KB",
+    "recall": {
+      "scifact": {
+        "mean": 0.2358,
+        "std": 0.0
+      }
+    }
+  },
+  "binary_native_1024": {
+    "n_seeds": 5,
+    "stsb_mean": 0.7264,
+    "stsb_std": 0.0018,
+    "dims": 1024,
+    "dtype": "binary",
+    "memory": "125 KB",
+    "recall": {
+      "scifact": {
+        "mean": 0.2762,
+        "std": 0.0119
+      }
+    }
+  },
+  "binary_native_2048": {
+    "n_seeds": 5,
+    "stsb_mean": 0.7269,
+    "stsb_std": 0.0033,
+    "dims": 2048,
+    "dtype": "binary",
+    "memory": "250 KB",
+    "recall": {
+      "scifact": {
+        "mean": 0.2926,
+        "std": 0.0097
+      }
+    }
+  }
+}
