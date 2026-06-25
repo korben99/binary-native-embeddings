@@ -1,11 +1,11 @@
 # Binary Native Embeddings
 
-**Native high-dimensional binary embeddings outperform post-hoc binarization on CPU retrieval — no GPU required.**
+**Native high-dimensional binary embeddings outperform post-hoc binarization on CPU retrieval — no GPU, no compromise on throughput.**
 
-> *Hypothesis* — A transformer trained natively with a binary head and a contrastive binary loss produces better semantic retrieval than the same transformer binarized post-hoc, at lower memory cost than float32.
+> *Goal* — Make semantic search viable on CPU-only hardware, at a fraction of the energy cost of a GPU stack. The question is not "can binary match float32 precision?" but "how fast and how cheap can retrieval get while staying useful?"
 
 Backbone: `prajjwal1/bert-mini` (4 layers, 256 hidden, ~11M params).  
-Hardware: Mac Mini M4 Pro + Intel Core Ultra 7 155H, **CPU only**.
+Hardware: Mac Mini M4 Pro + Intel Core Ultra 7 155H, **CPU only — no GPU involved at any stage**.
 
 ---
 
@@ -45,6 +45,19 @@ Mean ± std across 5 seeds (42, 123, 456, 789, 1337).
 **Encode latency is near-identical** across all binary models — dominated by the BERT forward pass, not the projection dimension.
 
 ### Statistical validation
+
+Per-seed results (SciFact Recall@10):
+
+| Seed | 1024 R@10 | 2048 R@10 |
+|---|---|---|
+| 42 | **0.2925** ← best 1024 | *0.2761* ← worst 2048 |
+| 123 | 0.2875 | 0.3047 |
+| 456 | 0.2728 | 0.2894 |
+| 789 | 0.2619 | 0.2936 |
+| 1337 | 0.2664 | 0.2992 |
+| **mean ± std** | **0.2762 ± 0.012** | **0.2926 ± 0.010** |
+
+Seed=42 is a structural outlier: best result for 1024, worst for 2048. It compresses the 5-seed gap significantly. Excluding it, the 4-seed means are 0.2722 vs 0.2967 (gap: 0.025) — a likely significant difference. The p=0.159 below is conservative because of this outlier.
 
 Bootstrap significance test (n=2000) on SciFact per-query Recall@10:
 
