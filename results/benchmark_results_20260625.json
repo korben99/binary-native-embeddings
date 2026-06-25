@@ -6,9 +6,9 @@
     "scifact_recall10": 0.3131,
     "memory_1k_vecs": "1.46 MB",
     "latency_cpu": {
-      "mean_ms": 4.84,
-      "p50_ms": 4.88,
-      "p95_ms": 5.28
+      "mean_ms": 4.56,
+      "p50_ms": 4.56,
+      "p95_ms": 4.69
     },
     "bit_diagnostics": null
   },
@@ -19,9 +19,9 @@
     "scifact_recall10": 0.3097,
     "memory_1k_vecs": "1.46 MB",
     "latency_cpu": {
-      "mean_ms": 6.67,
-      "p50_ms": 6.59,
-      "p95_ms": 7.21
+      "mean_ms": 6.09,
+      "p50_ms": 6.09,
+      "p95_ms": 6.26
     },
     "bit_diagnostics": null,
     "q4_backend": "torchao INT8 (fallback)"
@@ -33,9 +33,9 @@
     "scifact_recall10": 0.2358,
     "memory_1k_vecs": "47 KB",
     "latency_cpu": {
-      "mean_ms": 5.69,
-      "p50_ms": 5.76,
-      "p95_ms": 6.76
+      "mean_ms": 4.32,
+      "p50_ms": 4.31,
+      "p95_ms": 4.47
     },
     "bit_diagnostics": {
       "dead_bits": 0,
@@ -54,9 +54,9 @@
     "scifact_recall10": 0.2925,
     "memory_1k_vecs": "125 KB",
     "latency_cpu": {
-      "mean_ms": 5.47,
-      "p50_ms": 5.47,
-      "p95_ms": 6.15
+      "mean_ms": 4.39,
+      "p50_ms": 4.37,
+      "p95_ms": 4.54
     },
     "bit_diagnostics": {
       "dead_bits": 0,
@@ -75,9 +75,9 @@
     "scifact_recall10": 0.2761,
     "memory_1k_vecs": "250 KB",
     "latency_cpu": {
-      "mean_ms": 6.34,
-      "p50_ms": 6.19,
-      "p95_ms": 7.53
+      "mean_ms": 4.54,
+      "p50_ms": 4.53,
+      "p95_ms": 4.7
     },
     "bit_diagnostics": {
       "dead_bits": 0,
@@ -96,9 +96,9 @@
     "scifact_recall10": 0.2958,
     "memory_1k_vecs": "500 KB",
     "latency_cpu": {
-      "mean_ms": 7.44,
-      "p50_ms": 7.5,
-      "p95_ms": 8.22
+      "mean_ms": 4.59,
+      "p50_ms": 4.57,
+      "p95_ms": 4.77
     },
     "bit_diagnostics": {
       "dead_bits": 0,
@@ -108,6 +108,48 @@
       "balance_std": 0.08803779872889372,
       "mean_abs_corr": 0.07014944404363632,
       "max_abs_corr": 0.9620401263237
+    }
+  },
+  "binary_native_1024_reg": {
+    "dims": 1024,
+    "dtype": "binary",
+    "stsb_spearman": 0.7133,
+    "scifact_recall10": 0.2844,
+    "memory_1k_vecs": "125 KB",
+    "latency_cpu": {
+      "mean_ms": 4.4,
+      "p50_ms": 4.38,
+      "p95_ms": 4.52
+    },
+    "bit_diagnostics": {
+      "dead_bits": 0,
+      "entropy_mean": 0.9843617340285815,
+      "entropy_std": 0.023931480098208585,
+      "balance_mean": 0.4999328125,
+      "balance_std": 0.07317000549808537,
+      "mean_abs_corr": 0.04054560884833336,
+      "max_abs_corr": 0.8808801770210266
+    }
+  },
+  "binary_native_1024_bs256": {
+    "dims": 1024,
+    "dtype": "binary",
+    "stsb_spearman": 0.7287,
+    "scifact_recall10": 0.2778,
+    "memory_1k_vecs": "125 KB",
+    "latency_cpu": {
+      "mean_ms": 4.4,
+      "p50_ms": 4.39,
+      "p95_ms": 4.54
+    },
+    "bit_diagnostics": {
+      "dead_bits": 0,
+      "entropy_mean": 0.9774673462101107,
+      "entropy_std": 0.03156017140518387,
+      "balance_mean": 0.5005322265625,
+      "balance_std": 0.08767609766677387,
+      "mean_abs_corr": 0.06678582727909088,
+      "max_abs_corr": 0.933469831943512
     }
   }
 }

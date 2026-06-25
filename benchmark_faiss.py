@@ -121,7 +121,17 @@ def vs_str(float_ms: float, binary_ms: float) -> str:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main(binary_dims=(2048, 4096)):
+def _parse_suffix(suffix: str) -> int:
+    """Extract dim from checkpoint suffix. '1024_bs256' → 1024."""
+    return int(suffix.split("_")[0])
+
+
+def main(checkpoints=("2048", "4096")):
+    """
+    checkpoints: list of checkpoint suffixes.
+      "1024"       → binary_embedder_1024.pt,      label bin-1024
+      "1024_bs256" → binary_embedder_1024_bs256.pt, label bin-1024_bs256
+    """
     from models.float_embedder  import FloatEmbedder
     from models.binary_embedder import BinaryEmbedder
 
@@ -140,19 +150,20 @@ def main(binary_dims=(2048, 4096)):
         float_model.load_state_dict(torch.load(ckpt, map_location="cpu"))
     float_model.eval()
 
+    # suffix → (dim, model)
     binary_models = {}
-    for dim in binary_dims:
+    for suffix in checkpoints:
+        dim = _parse_suffix(suffix)
         m = BinaryEmbedder(binary_dim=dim)
-        ckpt = CKPT_DIR / f"binary_embedder_{dim}.pt"
-        if not ckpt.exists() and dim == 4096:
-            ckpt = CKPT_DIR / "binary_embedder.pt"   # legacy name
+        ckpt = CKPT_DIR / f"binary_embedder_{suffix}.pt"
         if ckpt.exists():
             m.load_state_dict(torch.load(ckpt, map_location="cpu"))
-            print(f"  Loaded binary-{dim}")
+            print(f"  Loaded binary-{suffix}")
         else:
-            print(f"  WARNING: checkpoint not found for dim={dim}, using random weights")
+            print(f"  WARNING: binary_embedder_{suffix}.pt not found — skipping")
+            continue
         m.eval()
-        binary_models[dim] = m
+        binary_models[suffix] = (dim, m)
 
     # ── Encode seed queries ──
     SEED_QUERIES = [
@@ -177,10 +188,10 @@ def main(binary_dims=(2048, 4096)):
     print(f"\nEncoding {len(SEED_QUERIES)} seed queries...")
     float_seeds = float_model.encode(SEED_QUERIES, tokenizer).numpy().astype(np.float32)
 
-    bin_seeds = {}   # dim -> (float_seeds, packed_seeds)
-    for dim, m in binary_models.items():
+    bin_seeds = {}   # suffix -> (dim, float_seeds, packed_seeds)
+    for suffix, (dim, m) in binary_models.items():
         s = m.encode(SEED_QUERIES, tokenizer).numpy().astype(np.float32)
-        bin_seeds[dim] = (s, pack_binary(s))
+        bin_seeds[suffix] = (dim, s, pack_binary(s))
 
     # ── Benchmark loop ──
     scales  = [10_000, 100_000, 1_000_000]
@@ -199,16 +210,16 @@ def main(binary_dims=(2048, 4096)):
                    "float_search_ms": round(float_ms, 2),
                    "binary": {}}
 
-        for dim in binary_dims:
-            seeds_f, seeds_p = bin_seeds[dim]
+        for suffix, (dim, seeds_f, seeds_p) in bin_seeds.items():
             binary_bytes  = dim // 8
             binary_mem    = n * binary_bytes / 1e6
             binary_corpus = make_binary_corpus(seeds_p, n)
             binary_ms     = bench(binary_search, seeds_p, binary_corpus, dim, 10)
             vs            = vs_str(float_ms, binary_ms)
             mem_ratio     = float_mem / binary_mem
-            print(f"  bin-{dim:4d}:  {binary_ms:8.2f} ms  |  {binary_mem:6.0f} MB  =>  {vs}  ({mem_ratio:.0f}x smaller)")
-            scale_r["binary"][str(dim)] = {
+            print(f"  bin-{suffix:<12}: {binary_ms:8.2f} ms  |  {binary_mem:6.0f} MB  =>  {vs}  ({mem_ratio:.0f}x smaller)")
+            scale_r["binary"][suffix] = {
+                "dim":              dim,
                 "binary_mem_mb":    round(binary_mem, 1),
                 "mem_ratio_x":      round(mem_ratio, 1),
                 "binary_search_ms": round(binary_ms, 2),
@@ -226,26 +237,27 @@ def main(binary_dims=(2048, 4096)):
     print(f"\nResults -> {out}")
 
     # ── Summary table ──
+    suffixes = list(bin_seeds.keys())
     W = 13
-    sep = "=" * (12 + (W + 2) * (1 + 2 * len(binary_dims)))
+    sep = "=" * (12 + (W + 2) * (1 + 2 * len(suffixes)))
     print(f"\n{sep}")
     print(f"  {backend}")
     header = f"{'Scale':>12}"
     header += f"  {'Float (ms)':>{W}}"
-    for dim in binary_dims:
-        header += f"  {f'Bin-{dim} (ms)':>{W}}"
-    for dim in binary_dims:
-        header += f"  {f'vs Float ({dim})':>{W}}"
+    for s in suffixes:
+        header += f"  {f'Bin-{s} (ms)':>{W}}"
+    for s in suffixes:
+        header += f"  {f'vs Float ({s})':>{W}}"
     print(header)
-    print("-" * (12 + (W + 2) * (1 + 2 * len(binary_dims))))
+    print("-" * (12 + (W + 2) * (1 + 2 * len(suffixes))))
     for n_str, r in results.items():
         if not n_str.isdigit():
             continue
         row = f"{r['n_vectors']:>12,}  {r['float_search_ms']:>{W}.2f}"
-        for dim in binary_dims:
-            row += f"  {r['binary'][str(dim)]['binary_search_ms']:>{W}.2f}"
-        for dim in binary_dims:
-            row += f"  {r['binary'][str(dim)]['vs_float']:>{W}}"
+        for s in suffixes:
+            row += f"  {r['binary'][s]['binary_search_ms']:>{W}.2f}"
+        for s in suffixes:
+            row += f"  {r['binary'][s]['vs_float']:>{W}}"
         print(row)
     print(sep)
 
@@ -255,6 +267,16 @@ def main(binary_dims=(2048, 4096)):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--binary_dims", type=int, nargs="+", default=[2048, 4096])
+    parser.add_argument("--checkpoints", type=str, nargs="+", default=None,
+                        help="Checkpoint suffixes, e.g. '1024' '1024_bs256' '1024_reg'")
+    parser.add_argument("--binary_dims", type=int, nargs="+", default=None,
+                        help="Shorthand: --binary_dims 1024 2048 → same as --checkpoints 1024 2048")
     args = parser.parse_args()
-    main(binary_dims=args.binary_dims)
+
+    if args.checkpoints:
+        checkpoints = args.checkpoints
+    elif args.binary_dims:
+        checkpoints = [str(d) for d in args.binary_dims]
+    else:
+        checkpoints = ["2048", "4096"]
+    main(checkpoints=checkpoints)

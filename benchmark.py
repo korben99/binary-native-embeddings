@@ -262,7 +262,18 @@ class Q4FloatWrapper:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main(binary_dims=(2048, 4096)):
+def _parse_suffix(suffix: str) -> int:
+    """Extract the dim from a checkpoint suffix. '1024_bs256' → 1024."""
+    return int(suffix.split("_")[0])
+
+
+def main(checkpoints=("2048", "4096")):
+    """
+    checkpoints: list of checkpoint suffixes.
+      "1024"        → binary_embedder_1024.pt,       label binary_native_1024
+      "1024_bs256"  → binary_embedder_1024_bs256.pt,  label binary_native_1024_bs256
+      "1024_reg"    → binary_embedder_1024_reg.pt,    label binary_native_1024_reg
+    """
     from models.float_embedder import FloatEmbedder
     from models.binary_embedder import BinaryEmbedder
 
@@ -290,19 +301,19 @@ def main(binary_dims=(2048, 4096)):
         ("binary_posthoc_384", posthoc_model, True,  384, True),
     ]
 
-    for dim in binary_dims:
+    for suffix in checkpoints:
+        dim = _parse_suffix(suffix)
+        label = f"binary_native_{suffix}"
         binary_model = BinaryEmbedder(binary_dim=dim)
-        ckpt = CKPT_DIR / f"binary_embedder_{dim}.pt"
-        # fallback to legacy name for 4096
-        if not ckpt.exists() and dim == 4096:
-            ckpt = CKPT_DIR / "binary_embedder.pt"
+        ckpt = CKPT_DIR / f"binary_embedder_{suffix}.pt"
         if ckpt.exists():
             binary_model.load_state_dict(torch.load(ckpt, map_location="cpu"))
-            print(f"  binary_embedder_{dim}.pt loaded")
+            print(f"  binary_embedder_{suffix}.pt loaded")
         else:
-            print(f"  WARNING: {ckpt} not found — using random weights")
+            print(f"  WARNING: {ckpt} not found — skipping")
+            continue
         binary_model.eval()
-        configs.append((f"binary_native_{dim}", binary_model, True, dim, True))
+        configs.append((label, binary_model, True, dim, True))
 
     results = {}
 
@@ -379,7 +390,17 @@ def main(binary_dims=(2048, 4096)):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--binary_dims", type=int, nargs="+", default=[2048, 4096],
-                        help="Binary dims to evaluate (e.g. --binary_dims 2048 4096)")
+    parser.add_argument("--checkpoints", type=str, nargs="+", default=None,
+                        help="Checkpoint suffixes, e.g. '1024' '1024_bs256' '1024_reg' '2048'")
+    parser.add_argument("--binary_dims", type=int, nargs="+", default=None,
+                        help="Shorthand: --binary_dims 1024 2048 → same as --checkpoints 1024 2048")
     args = parser.parse_args()
-    main(binary_dims=args.binary_dims)
+
+    if args.checkpoints:
+        checkpoints = args.checkpoints
+    elif args.binary_dims:
+        checkpoints = [str(d) for d in args.binary_dims]
+    else:
+        checkpoints = ["2048", "4096"]
+
+    main(checkpoints=checkpoints)
