@@ -201,14 +201,16 @@ class Q4FloatWrapper:
         import copy
         m = copy.deepcopy(base)
         try:
-            from torchao.quantization import quantize_, Int4WeightOnlyConfig
-            quantize_(m, Int4WeightOnlyConfig())
-            self._backend = "torchao INT4"
+            from torchao.quantization import quantize_, Int4WeightOnlyConfig, Int8WeightOnlyConfig
+            try:
+                quantize_(m, Int4WeightOnlyConfig())
+                self._backend = "torchao INT4"
+            except Exception:
+                m = copy.deepcopy(base)
+                quantize_(m, Int8WeightOnlyConfig())
+                self._backend = "torchao INT8 (fallback)"
         except Exception as e:
-            print(f"  [Q4] torchao unavailable ({type(e).__name__}), using INT8 dynamic fallback")
-            m = copy.deepcopy(base)
-            m = torch.quantization.quantize_dynamic(m, {torch.nn.Linear}, dtype=torch.qint8)
-            self._backend = "INT8 dynamic (fallback)"
+            raise RuntimeError(f"torchao unavailable: {e}. Run: pip install torchao")
         self.model = m
         print(f"  [Q4] backend: {self._backend}")
 

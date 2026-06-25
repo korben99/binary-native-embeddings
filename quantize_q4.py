@@ -28,18 +28,24 @@ DATA_DIR = BASE_DIR / "data_cache"
 def apply_quantization(model):
     """
     Returns (quantized_model, backend_label).
-    Tries torchao INT4 first, falls back to PyTorch INT8 dynamic.
+    Tries torchao INT4 → torchao INT8 → raises.
+    Note: torch.quantization.quantize_dynamic is broken on Python 3.13 (no QEngine).
     """
-    m = copy.deepcopy(model)
+    from torchao.quantization import quantize_, Int4WeightOnlyConfig, Int8WeightOnlyConfig
+
+    # INT4 weight-only (requires mslk on Apple Silicon)
     try:
-        from torchao.quantization import quantize_, Int4WeightOnlyConfig
-        quantize_(m, Int4WeightOnlyConfig())
-        return m, "torchao INT4 (Q4 weight-only)"
-    except Exception as e:
-        print(f"  torchao INT4 unavailable ({type(e).__name__}: {e}), falling back to INT8 dynamic")
         m = copy.deepcopy(model)
-        m = torch.quantization.quantize_dynamic(m, {torch.nn.Linear}, dtype=torch.qint8)
-        return m, "PyTorch INT8 dynamic (fallback)"
+        quantize_(m, Int4WeightOnlyConfig())
+        return m, "torchao INT4 weight-only"
+    except Exception as e:
+        print(f"  torchao INT4 unavailable ({type(e).__name__}: {e})")
+
+    # INT8 weight-only (universal torchao fallback)
+    print("  falling back to torchao INT8 weight-only")
+    m = copy.deepcopy(model)
+    quantize_(m, Int8WeightOnlyConfig())
+    return m, "torchao INT8 weight-only (fallback)"
 
 
 def bench_latency(model, tokenizer, n_runs=100, batch_size=32):
